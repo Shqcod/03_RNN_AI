@@ -1,92 +1,131 @@
 import streamlit as st
-import tensorflow as tf
+import numpy as np
 import pickle
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-
-# ===========================
-# Load Tokenizer
-# ===========================
-with open("tokenizer.pkl", "rb") as f:
-    tokenizer = pickle.load(f)
-
-max_len = 200  # harus sama dengan preprocess.py
-
-# ===========================
-# Load Models
-# ===========================
-@st.cache_resource
-def load_lstm():
-    return tf.keras.models.load_model("model_lstm.h5")
-
-@st.cache_resource
-def load_rnn():
-    return tf.keras.models.load_model("model_rnn.h5")
-
-model_lstm = load_lstm()
-model_rnn = load_rnn()
+import random
+from tensorflow.keras.models import load_model
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+from preprocess import load_and_preprocess
 
 
-# ===========================
-# Function Predict
-# ===========================
-def predict_sentiment(text, model):
-    seq = tokenizer.texts_to_sequences([text])
-    pad = pad_sequences(seq, maxlen=max_len, padding="post")
-    pred = model.predict(pad)[0][0]
-    return float(pred)
+# ---------------------------------
+# Load History Function
+# ---------------------------------
+def load_history(filename):
+    with open(filename, "rb") as f:
+        return pickle.load(f)
 
 
-# ===========================
-# UI Streamlit
-# ===========================
-st.set_page_config(page_title="Sentiment Analysis: LSTM vs RNN", layout="wide")
+st.title("🔎 Perbandingan Model RNN vs LSTM pada Dataset IMDB")
+st.write("Visualisasi evaluasi model berbasis dataset IMDB (tanpa input manual).")
 
-st.title("📘 Sentiment Analysis IMDB — LSTM vs RNN")
-st.write("Bandingkan hasil prediksi sentimen antara model **LSTM** dan **RNN (SimpleRNN)**.")
+# --- Load dataset ---
+st.subheader("📌 Memuat dataset dan preprocessing...")
+X_train, X_test, y_train, y_test, tokenizer = load_and_preprocess()
+st.success("Dataset berhasil dimuat!")
 
-st.markdown("---")
+# --- Load Models ---
+st.subheader("📌 Memuat Model...")
+model_lstm = load_model("model_lstm.h5")
+model_rnn = load_model("model_rnn.h5")
 
-# ===========================
-# Input Box
-# ===========================
-text_input = st.text_area(
-    "Masukkan review film:",
-    height=180,
-    placeholder="Contoh: The movie was absolutely amazing!"
-)
+history_lstm = load_history("history_lstm.pkl")
+history_rnn = load_history("history_rnn.pkl")
 
-col1, col2 = st.columns(2)
+st.success("Model & history training berhasil dimuat!")
 
-if st.button("🔍 Analisis Sentimen"):
-    if text_input.strip() == "":
-        st.warning("Tolong masukkan teks review terlebih dahulu.")
-    else:
-        with st.spinner("Memproses..."):
-            lstm_score = predict_sentiment(text_input, model_lstm)
-            rnn_score = predict_sentiment(text_input, model_rnn)
+# --- Predict ---
+st.subheader("📌 Membuat Prediksi...")
+y_pred_lstm = (model_lstm.predict(X_test) > 0.5).astype("int32")
+y_pred_rnn = (model_rnn.predict(X_test) > 0.5).astype("int32")
 
-        # LSTM result
-        with col1:
-            st.subheader("📘 Hasil Model LSTM")
-            lstm_label = "Positive 😊" if lstm_score >= 0.5 else "Negative 😞"
-            st.metric(label="Sentiment", value=lstm_label, delta=f"{lstm_score:.4f}")
+# --- Accuracy ---
+acc_lstm = accuracy_score(y_test, y_pred_lstm)
+acc_rnn = accuracy_score(y_test, y_pred_rnn)
 
-        # RNN result
-        with col2:
-            st.subheader("📙 Hasil Model RNN (SimpleRNN)")
-            rnn_label = "Positive 😊" if rnn_score >= 0.5 else "Negative 😞"
-            st.metric(label="Sentiment", value=rnn_label, delta=f"{rnn_score:.4f}")
+st.header("📊 Perbandingan Akurasi Model")
+st.write(f"**Akurasi LSTM:** {acc_lstm:.4f}")
+st.write(f"**Akurasi RNN:** {acc_rnn:.4f}")
 
-        st.markdown("---")
+# ---------------------------------
+# TRAINING PLOTS
+# ---------------------------------
+st.header("📈 Training Curves")
 
-        st.subheader("📊 Perbandingan Skor")
-        st.write(f"**LSTM Output:** {lstm_score:.4f}")
-        st.write(f"**RNN Output:** {rnn_score:.4f}")
+def plot_training(history, title):
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 
-        st.info(
-            "Catatan: Angka di atas menunjukkan probabilitas sentimen positif. "
-            "Semakin dekat ke 1 berarti lebih positif."
-        )
+    # Accuracy plot
+    ax[0].plot(history['accuracy'], label="Train Acc")
+    ax[0].plot(history['val_accuracy'], label="Val Acc")
+    ax[0].set_title(f"{title} Accuracy")
+    ax[0].legend()
 
-else:
-    st.write("Masukkan teks review, lalu tekan tombol *Analisis Sentimen*.")
+    # Loss plot
+    ax[1].plot(history['loss'], label="Train Loss")
+    ax[1].plot(history['val_loss'], label="Val Loss")
+    ax[1].set_title(f"{title} Loss")
+    ax[1].legend()
+
+    st.pyplot(fig)
+
+
+st.subheader("📌 LSTM Training")
+plot_training(history_lstm, "LSTM")
+
+st.subheader("📌 RNN Training")
+plot_training(history_rnn, "RNN")
+
+# ---------------------------------
+# Confusion Matrix
+# ---------------------------------
+st.header("📌 Confusion Matrix")
+
+def plot_cm(cm, title):
+    plt.figure(figsize=(4, 3))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+    plt.title(title)
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    st.pyplot(plt)
+
+cm_lstm = confusion_matrix(y_test, y_pred_lstm)
+cm_rnn = confusion_matrix(y_test, y_pred_rnn)
+
+plot_cm(cm_lstm, "LSTM Confusion Matrix")
+plot_cm(cm_rnn, "RNN Confusion Matrix")
+
+# ---------------------------------
+# Classification Reports
+# ---------------------------------
+st.header("📌 Classification Report")
+
+st.subheader("LSTM Report")
+st.text(classification_report(y_test, y_pred_lstm))
+
+st.subheader("RNN Report")
+st.text(classification_report(y_test, y_pred_rnn))
+
+# ---------------------------------
+# Contoh Prediksi Dataset
+# ---------------------------------
+st.header("🔍 Contoh Prediksi dari Dataset")
+
+index_to_word = {v: k for k, v in tokenizer.word_index.items()}
+
+def decode_review(encoded):
+    return " ".join([index_to_word.get(i, "?") for i in encoded if i != 0])
+
+st.subheader("Random Sample Predictions")
+
+for i in random.sample(range(len(X_test)), 5):
+    st.write("### Review:")
+    st.write(decode_review(X_test[i]))
+
+    st.write(f"**Label asli:** {'Positive' if y_test[i] == 1 else 'Negative'}")
+    st.write(f"**Prediksi LSTM:** {'Positive' if y_pred_lstm[i] == 1 else 'Negative'}")
+    st.write(f"**Prediksi RNN:** {'Positive' if y_pred_rnn[i] == 1 else 'Negative'}")
+    st.write("---")
+
+st.success("Selesai menampilkan evaluasi lengkap!")

@@ -9,10 +9,10 @@ max_words = 10000
 max_len = 200
 
 def clean_text(text):
-    text = re.sub(r'<.*?>', ' ', text)                # remove HTML tags
-    text = re.sub(r'[^a-zA-Z\s]', ' ', text)         # remove non-letters
-    text = text.lower()                               # lower
-    text = re.sub(r'\s+', ' ', text).strip()          # normalize spaces
+    text = re.sub(r'<.*?>', ' ', text)
+    text = re.sub(r'[^a-zA-Z\s]', ' ', text)
+    text = text.lower()
+    text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 def load_and_preprocess(csv_path="IMDB Dataset.csv"):
@@ -33,7 +33,6 @@ def load_and_preprocess(csv_path="IMDB Dataset.csv"):
     X_seq = tokenizer.texts_to_sequences(X)
     X_pad = pad_sequences(X_seq, maxlen=max_len, padding="post")
 
-    # save tokenizer
     with open("tokenizer.pkl", "wb") as f:
         pickle.dump(tokenizer, f)
 
@@ -43,8 +42,4 @@ def load_and_preprocess(csv_path="IMDB Dataset.csv"):
     )
 
     print("[INFO] Preprocessing complete.")
-    return X_train, X_test, y_train, y_test, tokenizer, max_len, max_words
-
-
-if __name__ == "__main__":
-    load_and_preprocess()
+    return X_train, X_test, y_train, y_test, tokenizer
