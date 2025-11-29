@@ -49,11 +49,11 @@ st.success("Dataset berhasil dimuat!")
 st.header("📌 Memuat Model yang Sudah Dilatih")
 
 with st.spinner("Memuat model LSTM & RNN..."):
-    model_lstm = load_model("model_lstm.h5")
-    model_rnn = load_model("model_rnn.h5")
+    model_lstm = load_model("model_h5/model_lstm.h5")
+    model_rnn = load_model("model_h5/model_rnn.h5")
 
-    history_lstm = load_history("history_lstm.pkl")
-    history_rnn = load_history("history_rnn.pkl")
+    history_lstm = load_history("history_model/history_lstm.pkl")
+    history_rnn = load_history("history_model/history_rnn.pkl")
 
 st.success("Model & history training berhasil dimuat!")
 

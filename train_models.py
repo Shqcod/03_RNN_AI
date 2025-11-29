@@ -14,8 +14,8 @@ history_rnn = rnn.fit(
     batch_size=128
 )
 
-rnn.save("model_rnn.h5")
-with open("history_rnn.pkl", "wb") as f:
+rnn.save("model_h5/model_rnn.h5")
+with open("history_model/history_rnn.pkl", "wb") as f:
     pickle.dump(history_rnn.history, f)
 
 # ----- Train LSTM -----
@@ -27,8 +27,8 @@ history_lstm = lstm.fit(
     batch_size=128
 )
 
-lstm.save("model_lstm.h5")
-with open("history_lstm.pkl", "wb") as f:
+lstm.save("model_h5/model_lstm.h5")
+with open("history_model/history_lstm.pkl", "wb") as f:
     pickle.dump(history_lstm.history, f)
 
 print("Training complete. Models saved!")
