@@ -1,7 +1,7 @@
 import pickle
 from preprocess import load_and_preprocess
-from model_rnn import build_rnn
-from model_lstm import build_lstm
+from model.model_rnn import build_rnn
+from model.model_lstm import build_lstm
 
 X_train, X_test, y_train, y_test, tokenizer = load_and_preprocess()
 

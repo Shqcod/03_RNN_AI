@@ -1,10 +1,13 @@
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, LSTM, Dense
+from tensorflow.keras.layers import Embedding, LSTM, Dense, Dropout
 
 def build_lstm(max_words=10000, max_len=200):
     model = Sequential([
-        Embedding(max_words, 128, input_length=max_len),
-        LSTM(64),
+        Embedding(max_words, 128),
+        LSTM(128, return_sequences=True, dropout=0.2, recurrent_dropout=0.2),
+        LSTM(64, dropout=0.2, recurrent_dropout=0.2),
+        Dense(64, activation="relu"),
+        Dropout(0.3),
         Dense(1, activation="sigmoid")
     ])
 
